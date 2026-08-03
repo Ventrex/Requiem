@@ -1,44 +1,24 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>REQUIEM — a noir action story</title>
-<style>
-  html,body{margin:0;padding:0;background:#000;overflow:hidden;height:100%;cursor:none}
-  canvas{display:block}
-</style>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>REQUIEM</title>
+<style>html,body{margin:0;height:100%;background:#000;color:#ddd;font:16px system-ui;display:grid;place-items:center}#status{padding:24px;text-align:center}</style>
 </head>
-<body>
-<canvas id="c"></canvas>
+<body><div id="status">REQUIEM laden…</div>
 <script>
-'use strict';
-const cv=document.getElementById('c'),cx=cv.getContext('2d');
-let VW=0,VH=0,VIG=null,GRAIN=null;
-function makeGrain(){GRAIN=document.createElement('canvas');GRAIN.width=GRAIN.height=160;const g=GRAIN.getContext('2d'),d=g.createImageData(160,160);for(let i=0;i<d.data.length;i+=4){const v=Math.random()*255;d.data[i]=d.data[i+1]=d.data[i+2]=v;d.data[i+3]=255;}g.putImageData(d,0,0);}
-function makeVig(){VIG=document.createElement('canvas');VIG.width=VW;VIG.height=VH;const g=VIG.getContext('2d'),r=g.createRadialGradient(VW/2,VH/2,Math.min(VW,VH)*.35,VW/2,VH/2,Math.max(VW,VH)*.72);r.addColorStop(0,'rgba(0,0,0,0)');r.addColorStop(1,'rgba(0,0,0,.62)');g.fillStyle=r;g.fillRect(0,0,VW,VH);}
-function resize(){VW=cv.width=innerWidth;VH=cv.height=innerHeight;makeVig();}
-addEventListener('resize',resize);makeGrain();resize();
-const keys={},mouse={x:innerWidth/2,y:innerHeight/2,down:false,rdown:false};
-addEventListener('keydown',e=>{keys[e.code]=true;if(['Space','Tab','KeyE','KeyR'].includes(e.code))e.preventDefault();onKey(e.code);});
-addEventListener('keyup',e=>keys[e.code]=false);addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;});
-addEventListener('mousedown',e=>{initAudio();if(e.button===0){mouse.down=true;onClick();}if(e.button===2)mouse.rdown=true;});
-addEventListener('mouseup',e=>{if(e.button===0)mouse.down=false;if(e.button===2)mouse.rdown=false;});addEventListener('contextmenu',e=>e.preventDefault());
-let AC=null,master,sfxG,musG,musLP,noiseB,delayN,muted=false;
-function initAudio(){if(AC)return;try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){return;}master=AC.createGain();master.gain.value=.9;master.connect(AC.destination);sfxG=AC.createGain();sfxG.gain.value=1;sfxG.connect(master);musLP=AC.createBiquadFilter();musLP.type='lowpass';musLP.frequency.value=16000;musG=AC.createGain();musG.gain.value=.42;musG.connect(musLP);musLP.connect(master);delayN=AC.createDelay(1);delayN.delayTime.value=.34;const fb=AC.createGain();fb.gain.value=.34;delayN.connect(fb);fb.connect(delayN);const dw=AC.createGain();dw.gain.value=.35;delayN.connect(dw);dw.connect(musG);noiseB=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate);const d=noiseB.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;const r=AC.createBufferSource();r.buffer=noiseB;r.loop=true;const rf=AC.createBiquadFilter();rf.type='lowpass';rf.frequency.value=850;const rg=AC.createGain();rg.gain.value=.05;r.connect(rf);rf.connect(rg);rg.connect(master);r.start();mus.next=AC.currentTime+.1;}
-function nsrc(){const s=AC.createBufferSource();s.buffer=noiseB;s.loop=true;return s;}
-function sClick(f0,v=.2){if(!AC||muted)return;const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();o.type='square';o.frequency.value=f0;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+.04);o.connect(g);g.connect(sfxG);o.start(t);o.stop(t+.05);}
-function sPiano(f,v=.2){if(!AC||muted)return;const t=AC.currentTime;[1,2.01].forEach((m,i)=>{const o=AC.createOscillator(),g=AC.createGain();o.type='triangle';o.frequency.value=f*m;g.gain.setValueAtTime(v*(i?.3:1),t);g.gain.exponentialRampToValueAtTime(.001,t+2.2);o.connect(g);g.connect(musG);g.connect(delayN);o.start(t);o.stop(t+2.3);});}
-const mus={mode:'menu',step:0,next:0,spb:60/112/2};const PENT=[146.83,174.61,196,220,261.63,293.66,349.23];
-function pad(t,fr,dur=3,v=.07){[0,.5].forEach(dt=>{const o=AC.createOscillator(),g=AC.createGain();o.type='sawtooth';o.frequency.value=fr;o.detune.value=dt?8:-8;o.connect(g);g.connect(musG);g.gain.setValueAtTime(.001,t);g.gain.linearRampToValueAtTime(v,t+.8);g.gain.linearRampToValueAtTime(.001,t+dur);o.start(t);o.stop(t+dur+.1);});}
-function tickMusic(){if(!AC||muted)return;while(mus.next<AC.currentTime+.28){const s=mus.step,t=mus.next;if(mus.mode==='menu'||mus.mode==='cut'){if(s%16===0)pad(t,PENT[Math.floor(Math.random()*3)]*.5,4,.06);if(s%8===0&&Math.random()<.5)sPiano(PENT[Math.floor(Math.random()*PENT.length)],.12);}mus.step++;mus.next+=mus.spb;}}
-let state='menu',fadeA=1,menuT=0,cutT=0;
-function onKey(c){if(c==='KeyM'){muted=!muted;if(master)master.gain.value=muted?0:.9;return;}if(state==='menu'&&(c==='Enter'||c==='Space')){initAudio();state='play';return;}}
-function onClick(){if(state==='menu'){initAudio();state='play';}}
-function grainOver(a){cx.globalAlpha=a;const ox=Math.random()*160|0,oy=Math.random()*160|0;for(let x=-ox;x<VW;x+=160)for(let y=-oy;y<VH;y+=160)cx.drawImage(GRAIN,x,y);cx.globalAlpha=1;}
-function renderMenu(){menuT+=1/60;cx.fillStyle='rgba(3,4,8,.55)';cx.fillRect(0,0,VW,VH);for(let i=0;i<120;i++){const x=(i*167+menuT*380)%(VW+100)-50,y=(i*89+menuT*760)%(VH+60)-30;cx.strokeStyle='rgba(150,180,220,.16)';cx.beginPath();cx.moveTo(x,y);cx.lineTo(x-5,y+20);cx.stroke();}cx.textAlign='center';cx.fillStyle='#c9a45a';cx.font='16px monospace';cx.fillText('A   N O I R   A C T I O N   S T O R Y',VW/2,VH*.30);cx.fillStyle='#f0ece2';cx.font='bold '+Math.min(110,VW*.11)+'px Georgia,serif';cx.shadowColor='#c9a45a';cx.shadowBlur=24;cx.fillText('R E Q U I E M',VW/2,VH*.44);cx.shadowBlur=0;cx.fillStyle='#8a90a0';cx.font='italic 17px Georgia,serif';cx.fillText('“They say no one walks out of their past. He intends to walk straight through it.”',VW/2,VH*.51);cx.fillStyle='rgba(255,217,122,'+(.6+.4*Math.sin(menuT*3))+')';cx.font='bold 20px monospace';cx.fillText('— TAP TO BEGIN —',VW/2,VH*.63);cx.fillStyle='#6a7080';cx.font='13px monospace';cx.fillText('Desktop controls: WASD · mouse · E · R · 1/2/3',VW/2,VH*.75);cx.fillStyle='#3f4450';cx.font='11px monospace';cx.fillText('iPad touch controls still need to be added',VW/2,VH*.92);grainOver(.05);cx.textAlign='left';}
-function renderPlay(){cx.fillStyle='#090b12';cx.fillRect(0,0,VW,VH);cx.textAlign='center';cx.fillStyle='#f0ece2';cx.font='bold 42px Georgia,serif';cx.fillText('REQUIEM',VW/2,VH*.42);cx.fillStyle='#c9a45a';cx.font='18px monospace';cx.fillText('The game loaded successfully.',VW/2,VH*.50);cx.fillStyle='#9aa0ac';cx.font='15px monospace';cx.fillText('Touch controls are the next required step for iPad.',VW/2,VH*.56);cx.textAlign='left';}
-function render(){cx.setTransform(1,0,0,1,0,0);cx.fillStyle='#05060a';cx.fillRect(0,0,VW,VH);if(state==='menu')renderMenu();else renderPlay();fadeA=Math.max(0,fadeA-.04);if(fadeA>0){cx.fillStyle='rgba(0,0,0,'+fadeA+')';cx.fillRect(0,0,VW,VH);}}
-let lastT=performance.now();function frame(now){lastT=now;if(state==='menu'||state==='play')tickMusic();render();requestAnimationFrame(frame);}requestAnimationFrame(frame);
-</script>
-</body>
-</html>
+(async()=>{
+ try{
+  const r=await fetch('https://api.github.com/repos/Ventrex/Requiem/git/blobs/cdcad8fbc173141da5e105fbe31548084fd50686',{cache:'no-store'});
+  if(!r.ok)throw new Error('GitHub bron kon niet worden geladen ('+r.status+')');
+  const j=await r.json();
+  const bytes=Uint8Array.from(atob(j.content.replace(/\s/g,'')),c=>c.charCodeAt(0));
+  let html=new TextDecoder('utf-8').decode(bytes);
+  html=html.replace("{x:1180,900,kind:'ammo'}","{x:1180,y:900,kind:'ammo'}");
+  html=html.replace("{x:2200,y:500,t:'thug',wp:[[2200,y=500],[2200,1100]]}","{x:2200,y:500,t:'thug',wp:[[2200,500],[2200,1100]]}");
+  html=html.replace("['VOSS','The locket was in his desk. He never opened it. Some treasures are only treasures to the one who remembers.']},","['VOSS','The locket was in his desk. He never opened it. Some treasures are only treasures to the one who remembers.']]},");
+  document.open();document.write(html);document.close();
+ }catch(e){document.getElementById('status').innerHTML='<b>REQUIEM kon niet starten</b><br><br>'+e.message;console.error(e);}
+})();
+</script></body></html>
