@@ -1,0 +1,7 @@
+services:
+  requiem:
+    build: .
+    container_name: requiem
+    restart: unless-stopped
+    ports:
+      - "8384:80"
